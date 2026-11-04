@@ -8,5 +8,5 @@ test('QA：E2E必須チェック検証用の見出し確認', async ({ page, con
   })
   await page.goto('/')
   expect(new URL(page.url()).origin).toBe(origin)
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Todoリスト')
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('QA-意図的失敗-この見出しは存在しません')
 })
