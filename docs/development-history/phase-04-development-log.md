@@ -90,3 +90,44 @@ npm.cmd view minimatch@11.0.1 version engines --json
 - Actionsの安定版タグと完全SHA、Nodeパッチ版の選定根拠、更新手順を記載する。
 - 最小権限、資格情報非保持、PRとmainで異なるconcurrency、lockfileベースのキャッシュを標準レビュー項目にする。
 - PR作成後の確定情報追記でHeadが変わる場合、最新Headの全チェックを再確認する。必須ゲートと情報提供用のaudit/coverageも区別する。
+
+## P4完了結果（マージ後の追記）
+
+上記は実装・PR作成時点の記録として保持する。以下はその後に確定し、GitHubとVercelから再照合した結果である。
+
+### レビュー・マージ・main反映
+
+- [PR #8](https://github.com/iwasaki-hub/todo-app/pull/8)について、ユーザーからコードレビュー完了とSquash and mergeの承認を受けた。GitHub上のレビュー一覧は空であり、ユーザーの承認は会話上の報告として区別する。
+- 承認Head `e070c4fc6a08b04aad98d6a275e17ab58b40d9e3`の一致、対象2ファイルのみの差分、Validate・Vercel・Preview Commentsのsuccess、競合・未解決レビュースレッドなしをマージ前に確認した。
+- 通常のSquash and mergeを実行し、PR #8がMergedであることを確認した。マージ日時：2026年11月4日22:17:18 JST（GitHub：`2026-11-04T13:17:18Z`）。
+- マージコミット：`a1e71400afdaee82ba78f385a406f165ba13c6b1`。メッセージ：`ci: add automated validation with GitHub Actions (#8)`。
+- GitHub mainと取得後のorigin/mainが同SHAを指すことを再確認した。変更は`.github/workflows/ci.yml`と本P4履歴のみで、アプリ・保存キー/形式・依存関係・既存テスト設定とコマンドを変更していない。
+- mainへの直接Push、強制マージ、ブランチ削除、ブランチ保護やRulesetsの変更は行っていない。
+
+### PR用CIとmain用CIの区別
+
+- PR #8の最終Head用[CI実行41835796556](https://github.com/iwasaki-hub/todo-app/actions/runs/41835796556)はpull_requestイベントでsuccess。Ubuntu 26.04.1 / Node 24.22.2 / npm 11.19.1で55件・lint・buildが成功し、npmキャッシュ復元も確認した。初回成功後の追加Pushに対する再検証である。
+- マージ後は別の[main用CI実行41836732281](https://github.com/iwasaki-hub/todo-app/actions/runs/41836732281)が自動起動した。イベントは`push`、ブランチは`main`、検証SHAは`a1e71400afdaee82ba78f385a406f165ba13c6b1`である。
+- main用CIの状態はcompleted / success。ジョブID`126597455266`のCheckout、Setup Node.js、npm ci、Test、Lint、Build、後片付けがすべてsuccessだった。ログで55/55のテスト成功も確認した。
+- これは正式なmainのマージコミットに対する独立したGitHub Actionsの実行結果であり、PR用テストマージrefやローカル実行の成功を流用した記録ではない。
+- CI成功はNode/jsdomでの検証成功を示す。実ブラウザの受入検証、IME、レイアウト、スクリーンリーダーの確認完了とは区別する。
+
+### Vercel Production
+
+- mainのGit連携自動デプロイがBUILDINGからREADYとなり、その後の照合でもREADYを確認した。
+- Production対象SHA：`a1e71400afdaee82ba78f385a406f165ba13c6b1`。ブランチは`main`、ソースはGitで、マージコミットと一致する。
+- デプロイID：`dpl_FF4PKMYkTrgcS4WA8rQ2z75FcFJQ`。
+- 本番URL：[https://todo-app-phi-one-43.vercel.app/](https://todo-app-phi-one-43.vercel.app/)。上記READYデプロイへの割り当てと、既存URLの維持を確認した。
+- 手動デプロイ・本番設定変更は行っていない。READYを本番操作の受入確認完了とは扱わない。
+
+### 残課題・共通テンプレートへの引き継ぎ
+
+- CIの必須チェック化は未設定。mainのブランチ情報では保護無効・required status checksなしだった。ワークフロー成功と、マージを強制的に制限する設定は別の事項である。設定変更は別の明示依頼で扱う。
+- 開発依存moderate 12件はP4実装時の再検査で確認した未解消の既知警告。本番依存は同検査で0件。本履歴更新でauditを再実行した値ではない。
+- 実ブラウザIME、スクリーンリーダー、実表示・本番操作、reopenedイベント、実際の重複実行キャンセルは未検証事項として残す。キャッシュ復元とmain pushの起動はその後確認済みである。
+- 共通テンプレートv1.2.0には、ローカル/PR/mainの検証環境・SHA・イベント・実行URLを分ける記録様式、Actions完全SHA固定とNode更新手順、最小権限とconcurrency、CI実行と必須チェック設定の区別、確定情報追記後の最新Head再確認を改善候補として引き継ぐ。共通テンプレート自体は変更しない。
+
+### 情報源と今回の文書PR
+
+- GitHub PR #8のMerged状態・日時・SHA、mainの参照先、main用CIのメタデータ・全ステップ、P4作業時のログ取得記録、VercelのProduction状態・Gitメタデータ・本番URL割り当てを根拠とした。
+- 今回は本Markdownだけを追記する文書PRである。この文書PRに対するpull_request CIは、PR #8マージ後のmain用push CIとは別の実行として、PR本文と最終報告に記録する。新しいPR番号・Head・チェック結果を過去のmain用CIの結果に混ぜない。
