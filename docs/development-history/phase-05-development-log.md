@@ -130,3 +130,33 @@ git diff --cached --check
 - E2EのCI統合は別PR。今回のGitHub Actionsは既存55件・lint・buildのみで、PlaywrightをCI実行したとは報告しない。Ruleset・Vercel設定も変更しない。
 - `test:e2e:ui`は起動用スクリプトを用意したが、対話UIの継続操作は今回未検証。
 - PR作成後は最新HeadのValidate・Vercel・Ruleset・競合・未解決レビューを確認し、PR本文と最終報告へ記録する。マージは行わない。
+
+## Phase 5：Playwright E2EのGitHub Actions統合
+
+### 変更内容と判断
+
+- 基準mainは`a9ed5d4389d8406e832e955fb9ea14ff15af1b75`。fetch後の一致とクリーンな作業ツリーを確認し、`feature/phase-05-playwright-ci`を作成した。
+- `.github/workflows/ci.yml`へ独立した`e2e`ジョブ（表示名`E2E (Playwright)`）を追加。既存Validateの名前・手順・実行条件、Workflowのトリガーとcontents: readを維持した。ジョブ間でnode_modulesやブラウザストレージは共有しない。
+- Ubuntu latest、Node.js 24.22.2、npmキャッシュ、15分タイムアウトを使用。`npm ci`後に`npx playwright install --with-deps chromium`を実行し、`npm run test:e2e`で既存9件を実行する。
+- 既存webServerがビルドと127.0.0.1:4173のpreview起動・終了を管理するため、CIで別のサーバーを起動しない。テスト/設定の変更、retry・skipの追加はない。各テストの新規Context、外部通信遮断、固定sleepなし、失敗時trace・画像保存を維持する。
+- checkout/setup-nodeは既存のSHA固定を維持。[upload-artifact公式安定版v7.0.2](https://github.com/actions/upload-artifact/releases/tag/v7.0.2)と公式タグの参照先コミット`cf430e030ddbb5b0abf93d22962f4752f3646cd9`をGitHub APIで確認して固定した。
+- 失敗時のみ`playwright-failure-results`へtest-results/とplaywright-report/を保存し、保持期間7日、ファイルなしはignoreとする。continue-on-errorを使わず、テストの失敗を成功に変えない。データはローカルQA専用であり本番へ接続しない。
+- アプリ、依存関係、Ruleset、Vercel設定は変更しない。E2Eの必須チェック化は別工程で判断する。
+
+### ローカル検証とCI結果の区別
+
+```powershell
+npm.cmd run test
+npm.cmd run lint
+npm.cmd run build
+npm.cmd run test:e2e
+git diff --check
+git diff --cached --check
+```
+
+- Windows / Node.js 26.13.0でVitest 55/55、lint、build、Playwright 9/9が成功（E2E終了コード0）。修正ループは0回。既存55件へE2Eが混入していない。
+- YAMLのインデント、独立したjobs構造、Actionの40桁SHA、権限・条件・成果物設定を差分レビューした。actionlintは未導入のため実行していない。新規依存は追加していない。
+- UbuntuのGitHub Actions結果はローカル成功と区別する。最新HeadのValidateとE2Eの結果・実行URLはPR作成後に取得し、PR本文と最終報告に記録する。この追記時点ではCI成功を未確認として扱う。
+- npm auditは今回再実行していない。前節のmoderate 12件は過去の実測値である。
+- 失敗時Artifactアップロードの実動作は意図的なCI失敗を発生させて検証していない。IME、A13、実端末、本番受入など既存の制限は継続する。CI成功はそれらの完了を意味しない。
+- PR作成後、最新Headの両ジョブ・Vercel・Active Ruleset・競合・未解決レビューを確認し、マージせず停止する。
