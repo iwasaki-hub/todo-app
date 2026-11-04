@@ -131,3 +131,54 @@ npm.cmd view minimatch@11.0.1 version engines --json
 
 - GitHub PR #8のMerged状態・日時・SHA、mainの参照先、main用CIのメタデータ・全ステップ、P4作業時のログ取得記録、VercelのProduction状態・Gitメタデータ・本番URL割り当てを根拠とした。
 - 今回は本Markdownだけを追記する文書PRである。この文書PRに対するpull_request CIは、PR #8マージ後のmain用push CIとは別の実行として、PR本文と最終報告に記録する。新しいPR番号・Head・チェック結果を過去のmain用CIの結果に混ぜない。
+
+## P4追加検証：CI必須チェック化とRuleset動作確認
+
+### 目的と有効化された設定
+
+前節で未設定だったCI必須チェック化は、その後の工程で設定・検証が完了した。CIが失敗・未完了ならmainへのマージを止め、Vercelチェックだけで通過させないことが目的である。今回の文書更新では設定を変更せず、GitHub APIから現在値を再取得した。
+
+- Ruleset：[main-pr-ci（ID 26534556）](https://github.com/iwasaki-hub/todo-app/rules/26534556)、enforcementはactive。
+- 対象：`~DEFAULT_BRANCH`（現在main）、除外なし。
+- PR必須、承認人数0人、レビュースレッド解決必須。最新mainとの同期を必須とするstrict status checksが有効。
+- 必須チェック：`Validate (test, lint, build)`、発行元GitHub Actions（integration_id 15368）。
+- force push禁止（non_fast_forward）、削除禁止（deletion）。creationルールはなく、Restrict creationsはOFF。
+- bypass_actorsは空、今回の接続でcurrent_user_can_bypassはnever。設定を回避する権限を前提としない。
+- 一人開発のためGitHub上の承認人数は0人だが、Codexによるマージには対象PR・Head SHAごとのユーザー最終承認を引き続き必要とする。
+
+### PR #10による成功・失敗・復元の検証
+
+検証対象は[PR #10](https://github.com/iwasaki-hub/todo-app/pull/10)、ブランチ`test/ci-ruleset-verification`。以下の実行SHAと結論をAPIで再照合した。
+
+| 段階 | Head SHA | CI実行 | 結果 |
+|---|---|---|---|
+| 初回 | `99343c9957c3df1c2ceececc840003f27d29bd9b` | [41842401023](https://github.com/iwasaki-hub/todo-app/actions/runs/41842401023) | completed / success |
+| 意図的失敗 | `6f9c063329cd60acdb56d6bec630512e89750952` | [41842627916](https://github.com/iwasaki-hub/todo-app/actions/runs/41842627916) | completed / failure |
+| 復元後 | `0876077aa342b97bfe3d0ba301ce5abdd14ced43` | [41842813672](https://github.com/iwasaki-hub/todo-app/actions/runs/41842813672) | completed / success |
+
+- ユーザー提供の検証記録では、一時的な失敗テストを追加し、失敗時のGitHubマージ判定がblockedとなった。その後テストを削除・復元し、cleanへ戻った。
+- 失敗実行のジョブAPIでTestのfailure、Lint・Buildのskippedを確認した。前段の失敗により後続が実行されなかった結果であり、Lint・Buildの成功とは扱わない。
+- 同じ失敗SHAでVercelとVercel Preview Commentsはsuccessだったが、Validateはfailureだった。検証記録のblockedと合わせ、Vercel側チェックの成功だけで必須CI条件を満たさなかったことを記録する。
+- 復元後実行はCheckout・Setup Node.js・npm ci・Test・Lint・Buildと後片付けがすべてsuccess。最新の復元SHAに対する成功であることを確認した。Vercelもsuccessだった。
+- PR #10の現在のAPI値はclosed、merged=false、Headは上記復元SHA、mergeable_stateはclean。最終差分は`docs/ci-ruleset-verification.md`のみで、失敗テストは最終差分に残っていない。
+- PR #10はmainへマージしなかった。今回の作業でPRの再オープン・マージ・検証ブランチ削除・失敗テスト追加などは行っていない。
+
+### 確認できた範囲と限界
+
+- 現在のRuleset設定、各CI実行のSHAと結論、失敗・復元後のステップ、PR #10のClosed/未マージと最終差分は今回APIで再確認した。
+- 過去の失敗時点のmergeable_state=blockedは現在のPR APIから時点を指定して再取得できないため、ユーザー提供の当時の検証記録を根拠とする。復元後のcleanは今回のPR APIでも確認できた。
+- mainと取得後origin/mainは引き続き`fa7ef7df09d3a0f97c118a9cb00cc6b8f6b1d731`で一致し、開始基準から変更なし。差分調査を必要とするmainの更新はなかった。
+- 本番URLに対応するVercel ProductionはREADY、main由来、同SHAの`dpl_E4Dz2MzU6sEHoKCYPYWZHEqZPv5P`のままであることを再確認した。検証用PRのPreviewとProductionを区別し、main・本番デプロイへの変更がないことを確認した。
+- 実ブラウザIME・スクリーンリーダー・表示・本番での受入操作は今回未実施。CI成功をそれらの完了として扱わない。
+- 未報告・未完了CI、古いmain、実force push・削除の拒否などをすべて実操作で検証したとはしない。設定値の確認と今回の失敗テストによる検証範囲を区別する。
+- 既知の開発依存moderate 12件・本番依存0件はP4実装時の過去の実測。今回auditは再実行せず、依存関係を変更しない。
+
+### 共通開発モデルv1.2.0への改善候補
+
+- CIワークフロー導入とRulesetによる必須化を分けて記録し、設定名・ID・対象・発行元・bypassを証拠として残す。
+- 未マージの検証用PRで「成功→意図的失敗→復元成功」を確認し、SHA・実行URL・ステップ・マージ判定を対応付ける。失敗テストをmainへ混入させない。
+- Vercel等の補助チェックと必須CIを区別し、別チェックのsuccessで代用しない。
+- 一人開発の承認0人と人間による最終マージ承認を区別する。過去のマージ判定のように再取得できない情報は、当時の報告と現在のAPI確認を区別する。
+- 今回は共通モデルv1.1.0の安全規則を参照したが、共通テンプレート自体やGitHub設定は変更しない。
+
+今回の文書更新のローカル検証でもtest 55/55、lint、build、`git diff --check`が成功した。意図的失敗は過去の検証用PRの結果であり、今回の修正ループは0回。変更は本Markdownのみで、PR作成後のCI・Vercel結果はこの文書PRのHeadに対応する別の実行としてPR本文・最終報告に記録する。
