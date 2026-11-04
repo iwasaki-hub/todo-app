@@ -96,3 +96,48 @@ npm.cmd audit --omit=dev --json
 - 単体/実Hooks/DOM操作/実ブラウザを区別し、IME・アクセシビリティの確認限界を記録する。
 - cleanup、localStorage分離、mock復元、固定seedシャッフルをテスト品質の確認例として追加する。
 - カバレッジは対象・除外・分母を併記し、100%と機能保証を混同しない。既知のaudit警告は本番/開発依存を分けて記載する。
+
+## P3完了結果（マージ後の追記）
+
+上記はPR作成時点の実装・検証記録として保持する。以下はその後に確定したレビュー・マージ・公開結果である。
+
+### レビュー・マージ・main反映
+
+- 対象：[PR #6](https://github.com/iwasaki-hub/todo-app/pull/6)。ユーザーからコードレビュー完了とSquash and mergeの承認を受けた。
+- マージ前に、承認Head `50bedfde4ba7bea3cf2faa161e90d9ce8cdec083`の完全一致、レビュー済みP3関連11ファイルのみの差分、Vercel・Vercel Preview Commentsのsuccessを確認した。
+- マージ競合・未解決レビュースレッドはなく、GitHubのマージ状態は`clean`。ブランチ情報では保護無効・必須チェックなし、rulesetなしだった。GitHub上のレビュー一覧は空であり、ユーザーによるレビュー完了承認は会話上の報告として区別する。
+- 通常のSquash and mergeを実行し、PRがMergedになったことを確認した。保護設定の回避、強制マージ、mainへの直接Push、ブランチ削除は行っていない。
+- マージ日時：2026年11月4日21:32:49 JST（GitHub：`2026-11-04T12:32:49Z`）。
+- マージコミットSHA：`0f86c56ad7d68499a97381c1e89c8623443cbc8c`。
+- コミットメッセージ：`test: add automated regression tests (#6)`。
+- GitHub mainが同SHAを指すことを確認し、検証済みHeadとマージ後mainの全50エントリーのパス・GitオブジェクトSHAが一致した。テスト環境と55件のテストが反映され、アプリ機能コード・保存形式・保存キーは維持されている。
+
+### テスト結果の位置づけ
+
+- 55件（保存処理19件、実Hooks18件、画面操作18件）の成功、lint・build・coverage成功、順序シャッフル成功は、CodexがP3実装時にローカルで実行した作業記録に基づく。マージ前には同じHead SHAとその後の変更がないことを確認した。
+- GitHub Actionsによる独立したCI検証はP4まで未実施。Vercelチェックのsuccessを、GitHub Actionsによる55件のテスト成功とは扱わない。
+- カバレッジ実測はStatements 100%（133/133）、Branches 100%（95/95）、Functions 100%（39/39）、Lines 100%（107/107）。対象はApp・4コンポーネント・useTodos・todoStorageの7ファイルで、main.tsx・型・テスト自身・補助コードを除外した値である。
+- この文書更新のための検証と、P3実装時の検証結果は区別する。マージ済みという事実だけで実ブラウザの操作確認が完了したとはしない。
+
+### Production自動デプロイ
+
+- GitHub連携によるProduction自動デプロイはBUILDINGからREADYになったことを確認した。
+- デプロイ元：Git、ブランチ：`main`、対象SHA：`0f86c56ad7d68499a97381c1e89c8623443cbc8c`。マージコミットと一致した。
+- デプロイID：`dpl_DngCGsHEY219KZhiH3jHnDWok4Br`。
+- 本番URL：[https://todo-app-phi-one-43.vercel.app/](https://todo-app-phi-one-43.vercel.app/)。同URLが上記READYデプロイに割り当てられていることを再確認した。
+- 手動デプロイや本番設定変更は行っていない。READYはビルド・公開の完了を示し、本番での操作検証を保証するものではない。
+
+### 残課題とP4への引き継ぎ
+
+- P3のaudit実測は開発依存moderate 12件、本番依存0件。minimatch由来の既知警告は未解消であり、更新判断時に再調査する。本履歴更新ではauditを再実行していない。
+- 実ブラウザIME、OSやモバイルでの変換イベント、スクリーンリーダー、実レイアウト、本番操作、watchの継続操作は未検証のまま引き継ぐ。
+- P4ではGitHub Actionsでlockfileに基づくインストール、test・lint・build・必要なcoverageを実行し、Linuxでの再現性とチェック運用を整備する。jsdomを含むNode要件を満たす実行環境を選ぶ。
+- 共通モデルv1.1.0への改善候補は、上記の安定版・engines・peer確認、保存キーの不一致記録、実Hooks/DOM/実ブラウザの検証範囲の区別、後片付けと固定seed、カバレッジ対象・分母の明記、auditの本番/開発分離である。共通テンプレート自体は今回変更しない。
+
+### 照合した情報源
+
+- GitHub PR #6のMerged状態・マージ日時・SHA、およびマージ時のmain・変更ファイル・Gitツリーの確認結果。
+- ユーザーのコードレビュー完了承認、CodexのP3ローカル検証記録と本履歴の実測値。
+- Vercel APIから取得した本番URLに対応するProduction READY、Gitブランチ・SHA・URL割り当て。
+
+今回の文書更新でも`npm.cmd run test`（55/55）、`npm.cmd run lint`、`npm.cmd run build`と`git diff --check`が成功した。coverageは再測定せず、上記P3実装時の実測値を記録した。変更対象は本Markdownの1ファイルのみで、秘密情報や生成物を含まないことを差分で確認した。
