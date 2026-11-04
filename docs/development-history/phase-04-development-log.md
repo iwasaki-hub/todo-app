@@ -68,6 +68,15 @@ npm.cmd view minimatch@11.0.1 version engines --json
 
 本記録の初稿時点ではPR番号・Actions実行URL・Ubuntuでの結果は未確定。PR作成後の実行を確認して追記する。マージSHAとProduction結果は未確定であり、今回マージ・本番操作は行わない。
 
+### PR作成後の確定結果
+
+- [PR #8](https://github.com/iwasaki-hub/todo-app/pull/8)をmain向けに作成し、pull_requestイベントによる自動起動を確認した。
+- 初回Head：`b32f61fe78357d7c953457bd940f7e2a9c173317`。GitHubが実際にCheckoutしたPRテスト用マージSHA：`0748c2817552d3d23d2c1970e2df9f4864e64379`。これはmainへの正式なマージではない。
+- [初回CI実行](https://github.com/iwasaki-hub/todo-app/actions/runs/41835513113)はcompleted / success。ジョブID`126593258925`の全ステップでsuccessを確認した。
+- ログ実測：Ubuntu 26.04.1 LTS（ubuntu-latest）、Node 24.22.2、npm 11.19.1。npm ci、test 55/55、lint、型検査・Vite buildがすべて成功した。GitHub Actionsによる独立したLinuxでの検証結果であり、ローカル成功とは別の証拠である。
+- 初回はnpmキャッシュ未命中、その後のキャッシュ保存成功を確認した。CIログでも既知moderate 12件の案内があり、npm ci自体は成功した。
+- この確定結果を履歴に追記して追加PushするためHeadは更新される。最終HeadのCI・Vercel・Preview Commentsを再確認し、その実行URL・結論をPRと最終報告に残す。初回成功を更新後Headの成功として流用しない。
+
 ## 未検証事項・マージ前確認
 
 - PR作成・更新イベントのCI、各ステップ、最終Headに対する成功、Vercel Previewを確認する。mainのpushイベントはマージ前には未実施。
