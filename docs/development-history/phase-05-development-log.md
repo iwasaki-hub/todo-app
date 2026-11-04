@@ -160,3 +160,43 @@ git diff --cached --check
 - npm auditは今回再実行していない。前節のmoderate 12件は過去の実測値である。
 - 失敗時Artifactアップロードの実動作は意図的なCI失敗を発生させて検証していない。IME、A13、実端末、本番受入など既存の制限は継続する。CI成功はそれらの完了を意味しない。
 - PR作成後、最新Headの両ジョブ・Vercel・Active Ruleset・競合・未解決レビューを確認し、マージせず停止する。
+
+## Phase 5-G：E2E必須チェックのRuleset実動作検証
+
+### 目的と保護設定
+
+- 前節の「E2E必須化・失敗時Artifact未検証」は当時の記録として残す。その後、E2Eが必須チェックに追加され、[検証用PR #15](https://github.com/iwasaki-hub/todo-app/pull/15)で正常→意図的失敗→ブロック→Artifact確認→復旧を検証した。
+- [Ruleset main-pr-ci（26534556）](https://github.com/iwasaki-hub/todo-app/rules/26534556)はActive。必須チェックは`Validate (test, lint, build)`と`E2E (Playwright)`で、両方の発行元はGitHub Actions（integration_id: 15368）。
+- strictな最新main同期、PR必須、会話解決必須、force push禁止、ブランチ削除禁止、bypassなしを維持。必須承認人数は0人。今回の検証・記録作業ではRulesetを変更していない。
+- 検証基準mainは`8a9bdb7c366775500c0b42b05779f7d6bbc12fb6`。検証ブランチは`test/phase-05-e2e-ruleset-verification`。
+
+### 検証方法とGitHubの実測
+
+- 検証ブランチだけに`e2e/ruleset-verification.spec.ts`を追加。ローカルTodo画面の見出し`Todoリスト`を確認し、既存9件と合わせてE2E 10件とした。アプリ、既存E2E、Workflow、依存関係を変更していない。
+- Draft PRとして作成し、DraftでもCIが起動することを確認。Draft自身のマージ制限と必須チェックの効果を区別するためReadyへ変更し、マージせずGitHub APIの判定を取得した。
+
+| 段階 | Head SHA | CI実行 | Validate | E2E | 当時のmergeable_state |
+|---|---|---|---|---|---|
+| 正常 | `6c1d98910bdf34a551306245b4f805b5954453d4` | [41858577310](https://github.com/iwasaki-hub/todo-app/actions/runs/41858577310) | success | success：10件成功 | clean |
+| 意図的失敗 | `fadae88416624a92612508ba129ae0dd4945d924` | [41858927138](https://github.com/iwasaki-hub/todo-app/actions/runs/41858927138) | success | failure：既存9件成功・検証1件失敗 | blocked |
+| 復旧 | `aaa7cba2067b5e47c2e8f021472ec25a3c17df54` | [41859377650](https://github.com/iwasaki-hub/todo-app/actions/runs/41859377650) | success | success：10件成功 | clean |
+
+- 失敗は検証specの期待値だけを実在しない見出しに変更して発生させた。ログの実値は`Todoリスト`で、意図した期待値不一致による失敗だった。Validate成功・Vercel成功でもGitHubの判定はblockedとなった。
+- 期待値を元に戻してローカル検証後にPushし、最新Headの両ジョブ成功とcleanへの復帰を確認した。過去の失敗と最新Headの成功を区別した。skip・retry追加、保護設定の回避は行っていない。
+- 上表のSHA・CI結果は今回もGitHub APIで再照合した。blocked/cleanは検証時に取得したAPI結果とPR #15の作業記録に基づく当時の状態であり、Closed後の現在のマージ可否と混同しない。
+
+### 失敗時Artifactと確認範囲
+
+- 失敗CIの`Upload Playwright failure artifacts`はsuccess。`playwright-failure-results`（Artifact ID: 13339560681）が保存された。作成は2026-11-04 15:33:56 UTC、期限は2026-11-11 15:33:56 UTCで保持期間7日。
+- ZIP内のスクリーンショット、trace、HTMLレポート等はユーザー確認済みとの報告を今回受領した。これはCIジョブ成功とは別の確認情報として扱う。
+- 検証時のCodex作業記録にも、ZIP取得後のファイル一覧確認がある：`test-results/`内の`test-failed-1.png`、`trace.zip`、`error-context.md`、`playwright-report/index.html`。trace内部の操作記録・ネットワーク記録・画像の存在も確認した記録がある。
+- Trace Viewerによる対話的再生は未実施。ファイルの存在確認やユーザー報告を、対話的再生完了として扱わない。
+
+### 終了状態・引き継ぎ
+
+- PR #15はClosed / Unmerged（今回GitHub APIで再確認）。検証用ブランチは削除していない。
+- mainは基準SHAのままで、検証用追加テストはmainへ未導入。mainの恒常E2Eは9件であり、検証PRの10件とは区別する。本番環境は操作していない。
+- Ruleset変更後の保護動作について、E2E失敗時のブロックと復旧後の解除を実際に確認できた。必須チェック2件とActive状態も再確認した。
+- 検証時のローカル正常・復旧結果はVitest 55件、lint・build、E2E 10件成功。意図的失敗以外のコード修正ループは0回。
+- 今回は履歴Markdownのみを変更する文書専用PR。ローカル検証と最新Headの必須2チェック結果はPR本文・最終報告へ記録する。今回の文書PRのCIはPR #15の検証結果とは別の実行である。
+- 残課題：Trace Viewerの対話的再生、IME・A13・スクリーンリーダー・実端末・本番受入の未実施/未確認項目。npm auditは今回再検査しておらず、moderate 12件は過去の実測値として扱う。
