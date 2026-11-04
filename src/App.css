@@ -26,9 +26,20 @@ button { padding: 8px 18px; border-radius: 8px; border: 1px solid transparent; f
 .delete-button:hover { background: #fff0ee; }
 .empty-state { padding: 28px 16px; text-align: center; background: #f5f7fb; border-radius: 8px; color: #53647a; }
 footer { margin-top: 32px; font-size: .8rem; text-align: center; }
+.todo-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+.todo-filters button, .secondary-button { background: #f5f7fb; color: #243348; border-color: #8493a6; }
+.todo-filters button[aria-pressed='true'] { background: #245ac1; color: #fff; border-color: #245ac1; font-weight: 700; }
+.secondary-button:hover { background: #e7edf7; }
+.todo-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.edit-form { width: 100%; min-width: 0; }
+.edit-form > label { display: block; font-weight: 600; margin-bottom: 8px; }
+.edit-form > input { width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid #8493a6; border-radius: 8px; }
+.edit-form > input[aria-invalid='true'] { border-color: #b42318; }
+.edit-form .todo-actions { margin-top: 12px; }
 @media (max-width: 480px) {
   .todo-app { margin: 16px auto; padding: 20px 16px; }
   .form-row { flex-direction: column; gap: 8px; }
-  .todo-item { gap: 8px; }
+  .todo-item { gap: 8px; flex-wrap: wrap; }
+  .todo-check { flex-basis: 100%; }
   .delete-button { padding-inline: 12px; }
 }
