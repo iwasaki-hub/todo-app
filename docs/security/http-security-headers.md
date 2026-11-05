@@ -119,6 +119,26 @@ unsafe-inline、unsafe-eval、ワイルドカード、vercel.live等の例外は
 
 ### 本番反映前の人間による受入
 
+### Preview実測と引き継ぎ（PR #23）
+
+[PR #23](https://github.com/iwasaki-hub/todo-app/pull/23)の初回実装SHA`6a58230706a702263fded1bd56595eee4aee3076`に対応する[Preview](https://todo-j7yj4pcuv-masas-projects-39337881.vercel.app/)はVercel APIでREADY。デプロイIDは`dpl_4YzoiFBv32chXcUkf5Vt2qyHhV9p`で、作業ブランチ・デプロイSHAが一致した。これは後続の文書追記コミットとは区別する。
+
+通常の未認証HEAD・GETを`/`へ各1回送り、どちらも302、Vercel SSOへのリダイレクト、Content-Typeはtext/plainだった。SSO保護を変更・回避しないため、Todo本体の強制CSP・Report-Only不在・基本4ヘッダー・HSTS・Cache-Controlは実測未確認。認証応答のヘッダーをアプリの成功と扱わない。
+
+| 観点 | 今回の結果 |
+| --- | --- |
+| Todo HTML・参照JS/CSS・faviconの取得 | 未確認（HTMLがSSOのため参照パスも未特定） |
+| 強制CSPの値、Report-Only不在、基本4ヘッダー | 設定静的検証成功／アプリHTTP応答は未確認 |
+| 必要スクリプト・スタイルの読み込みとConsole | 未実施 |
+| 追加・編集・削除・完了・フィルター・保存・再読み込み | Previewでは未実施 |
+| 日本語IME・エラー表示・favicon表示 | 未実施 |
+| iframe埋め込み拒否 | 未実施 |
+| Toolbar由来の実際の遮断 | 未観測（発生可能性のみ記録） |
+
+Codexによる実ブラウザ操作や認証付き自動化は実施していない。前工程のユーザーPassや通常CIを代用せず、最新HeadのPreviewで次の手順を実施する必要がある。
+
+### 強制CSPの追加手動受入手順
+
 最新HeadのPreviewで、認証済みユーザーがHTML・参照JS/CSS・faviconのHTTP 200、正しいContent-Type、強制CSPの値一致、Report-Only不在、基本4ヘッダーとHSTS・Cache-Controlを確認する。Console/Networkでアプリに必要なスクリプト・スタイルが遮断されないことを確認し、Toolbar由来の遮断とは別に記録する。
 
 テスト専用ブラウザでTodo追加・編集・取消・削除・完了切替・全フィルター・保存・再読み込み、日本語IME・エラー表示、favicon、iframe埋め込み拒否を確認する。認証画面による拒否とアプリのframe-ancestors/X-Frame-Optionsによる拒否を区別する。未操作は未実施とし、必要機能が壊れた場合は原因を報告して停止し、CSPを勝手に緩めない。SSO保護を変更・回避せず、取得できない場合はユーザー確認へ引き継ぐ。
