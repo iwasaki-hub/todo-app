@@ -44,7 +44,29 @@ favicon.svgにはstyle属性がある。Report-Onlyで表示できても強制�
 
 ## 検証記録
 
-実際のPreview URL・デプロイ対象SHA・HEAD/GET・ブラウザの結果は、デプロイ後にこの節へ追記する。現時点では未確認。
+2026-11-05、初回実装コミット`492a7591ba8bb1ac35c28088257eb487974c394b`に対する[Preview](https://todo-p445asmhc-masas-projects-39337881.vercel.app/)をVercel APIでREADYと確認した。デプロイIDは`dpl_DpqocwTKQUqr2ubHu6aWP7SGJijg`、デプロイ元は作業ブランチ`feat/phase-07-security-headers-report-only`で、対象SHAは同コミットと一致した。この後の文書追記コミットとは区別する。
+
+同Previewの`/`へ未認証のHEAD・GETを各1回送り、いずれも302、LocationはVercel SSO、Content-Typeはtext/plainだった。これはTodo HTMLではなく認証保護の応答であるため、そこで返るX-Frame-Options等を設定反映の成功として扱わない。認証情報やCookie値は本書へ記録しない。
+
+| 検証対象 | HEAD | GET | 判定 |
+| --- | --- | --- | --- |
+| `/` | 302（SSO） | 302（SSO） | Todoのヘッダーは未確認 |
+| Preview HTMLが参照するJS | 未実施 | 未実施 | Todo HTMLを取得できずパス未特定 |
+| Preview HTMLが参照するCSS | 未実施 | 未実施 | 同上 |
+| `/favicon.svg` | 未実施 | 未実施 | 認証保護を回避せずユーザー確認へ引き継ぐ |
+
+アプリ本体のContent-Type、基本4ヘッダー、CSP Report-Only、強制CSP不在、HSTS・Cache-ControlのHEAD/GET実測はすべて未確認。設定ファイルにHSTS・Cache-Controlの上書きがないことは静的確認済みだが、アプリレスポンスでの維持を検証済みとはしない。
+
+PreviewでのJS/CSS読み込み、favicon表示、ConsoleのCSP警告・違反イベント、Todo追加・編集・削除・完了切替・フィルター、再読み込みとlocalStorage、日本語入力・エラー、X-Frame-Optionsによる埋め込み拒否は未実施。認証済みブラウザを使った自動化も実施していない。実OSのIMEは自動入力による代用では保証しない。
+
+### 認証済みユーザーによる追加確認手順
+
+1. PRのVercel Previewへ正規の権限でログインし、実際にTodo画面が表示されることを確認する。最新Headに対応するPreview URL・SHAも控える。
+2. DevToolsのNetworkでキャッシュを無効化して再読み込みし、Document、参照JS/CSS、faviconのURL・ステータス・Content-Type・対象全ヘッダーを記録する。GETとHEADは別々に確認し、HEADは認証を維持できるブラウザのfetch等で行う。Cookieや認証値を共有ログへコピーしない。
+3. 基本4ヘッダーとReport-Onlyの値をvercel.jsonと照合し、強制CSPがないことを確認する。HSTS・Cache-Controlも導入前と比較する。
+4. ConsoleでCSP警告の有無と対象リソースを確認する。レポート受信先なしの警告・アプリ由来・Toolbar由来を区別する。違反イベントを観測できなければ未確認のままとする。
+5. テスト専用ブラウザプロファイルでQAタスクの追加・編集・取消・削除、完了切替・フィルター、再読み込み・保存、日本語IMEと入力エラー、faviconを確認する。通常利用のデータを消さない。
+6. 別の非本番テスト文書からの埋め込みでX-Frame-Optionsの拒否を確認する。認証リダイレクトによる拒否とアプリ本体のDENYを区別する。未実施項目は未実施として報告する。
 
 ローカル検証（2026-11-05）：JSON解析、source、5ヘッダーの重複・値、CSP13ディレクティブ、強制CSP/HSTS/Cache-Control/不要な設定の不在を確認して成功。test→lint→build→testの順に成功し、Vitest59件を2回成功、Playwright15件成功、AX01〜AX06はすべてviolations 0 / incomplete 0。修正ループ0回。既存E2EのVite previewはvercel.jsonを配信ヘッダーへ反映しないため、実測Previewの検証とは区別する。
 
