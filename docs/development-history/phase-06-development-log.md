@@ -126,3 +126,83 @@ Chromeの実バージョン、OS表示倍率、IME製品名、実施日時、ケ
 - 変更対象は本Markdownのみ。Phase 5履歴・アプリ・依存・Workflow・Rulesetは変更しない。秘密情報・個人情報・推測した版や実施日時を記載しない。
 - 見出し・表・リンク・SHA・23件/70件の区別を点検。AGENTS.mdに従いローカルtest・lint・buildと通常/ステージ済み差分チェックを行い、結果をPR本文・最終報告へ記録する。
 - この文書PRのCI結果はPR #17のマージ後CIとは別の実行として扱う。PR番号・Head・最新チェックは作成後に確認する。文書PRのマージ・本番結果は未確定であり、今回マージせず停止する。
+
+## 10. Phase 6-A-4：PR #18のマージ後確認
+
+以下は前節の文書作成後に確定した結果。Phase 6-Aの元の記録・SHA・23件Passは変更せず、後続工程として追記する。
+
+| 項目 | 確認結果 |
+|---|---|
+| PR | [#18](https://github.com/iwasaki-hub/todo-app/pull/18)、Merged |
+| 承認対象Head | `b4b4e46a1b69870ee486ed9dc187ece57c296c89` |
+| マージ方法・日時 | 通常のSquash and merge、2026-11-05 20:05:24 JST |
+| マージSHA・Phase 6-D開始基準main | `3380e1b1b9c1095463fa78514d075ff5570df636` |
+| 変更 | Phase 6履歴Markdownの新規追加1ファイルのみ |
+| main向けCI | [42016073117](https://github.com/iwasaki-hub/todo-app/actions/runs/42016073117)、pushイベント、completed / success |
+| CI対象SHA | 上記マージSHAと一致 |
+| テスト実績 | Vitest 55件、Playwright 15件（既存9件＋axe6件）、Lint・Build成功 |
+| axe実績 | AX01〜AX06すべてviolations 0 / incomplete 0 |
+
+PRのマージ状態・日時・SHA、GitHub main、CIのイベント・結果・対象SHAをPhase 6-Dの記録前にAPIで再照合した。件数とaxe結果は当該CIのジョブログでも再照合した。
+
+Vercel ProductionもAPIで再照合し、READY、デプロイ元main、対象SHA `3380e1b1b9c1095463fa78514d075ff5570df636`の一致を確認した。本番URLは[既存URL](https://todo-app-phi-one-43.vercel.app/)を維持している。CI成功・デプロイ完了・以下のユーザー手動受入は独立した根拠であり、代用しない。
+
+## 11. Phase 6-B：iPhone Safari実機検証
+
+- 実施者はユーザー。対象はiPhoneのSafariでアクセスした[**Vercel Production**](https://todo-app-phi-one-43.vercel.app/)であり、ローカル開発サーバーではない。
+- 以下は今回受領した手動報告。CodexがiPhoneを操作した結果ではなく、この文書作業で受入操作を再実施していない。
+
+| ID | 確認対象 | 結果 |
+|---|---|---|
+| IP01 | Safari表示・画面レイアウト | Pass |
+| IP02 | タスク追加 | Pass |
+| IP03 | 完了・未完了 | Pass |
+| IP04 | 編集・キャンセル | Pass |
+| IP05 | 削除・確認ダイアログ | Pass |
+| IP06 | フィルター | Pass |
+| IP07 | Safari再読み込みと保存 | Pass |
+| IP08 | 日本語入力・エラー | Pass |
+| IP09 | タッチ操作とキーボード | Pass |
+| IP10 | 横向き・長文表示 | Pass |
+
+合計10 Pass / 0 Fail / 0 Not Tested。iPhoneモデル、iOS・Safariの詳細バージョン、詳細な実施日時や操作ログは未提示のため未確認。IP09のキーボードの種類等も推測しない。
+
+保存確認は同一ブラウザ・同一オリジンのlocalStorageについての報告であり、端末間やブラウザ間の同期、バックアップ、全保存条件での保持を保証しない。手動実施時点の配信SHAの直接証拠は未提示であり、記録時のProduction SHA照合と区別する。
+
+## 12. Phase 6-C：Windows本番受入
+
+実施者はユーザー。Windows 11のChrome・Edgeそれぞれから[同じVercel本番URL](https://todo-app-phi-one-43.vercel.app/)へアクセスした手動報告である。
+
+| ID（ブラウザごとに実施） | 確認対象 | Google Chrome | Microsoft Edge |
+|---|---|---|---|
+| PC01 | 本番表示・レイアウト | Pass | Pass |
+| PC02 | 追加・編集・削除 | Pass | Pass |
+| PC03 | 完了切替・フィルター | Pass | Pass |
+| PC04 | 再読み込み後のデータ保持 | Pass | Pass |
+| PC05 | 日本語入力・エラー表示 | Pass | Pass |
+
+Chrome 5 Pass、Edge 5 Pass、合計10 Pass / 0 Fail / 0 Not Tested。詳細なブラウザバージョン、IME、個別の操作記録、実施日時、手動実施時点の配信SHA等は未確認。今回の文書作業では手動検証を再実施せず、Codexによる本番機能操作も行っていない。
+
+## 13. Phase 6全体の受入結果と確認範囲
+
+| 手動工程 | 環境 | Pass | Fail | Not Tested |
+|---|---|---:|---:|---:|
+| Phase 6-A | Windows Chrome | 18 | 0 | 0 |
+| Phase 6-A | Windows Edge | 5 | 0 | 0 |
+| Phase 6-B | iPhone Safari実機・本番URL | 10 | 0 | 0 |
+| Phase 6-C | Windows Chrome・本番URL | 5 | 0 | 0 |
+| Phase 6-C | Windows Edge・本番URL | 5 | 0 | 0 |
+| 報告されたケースの合計 | ユーザー手動報告 | 43 | 0 | 0 |
+
+今回報告された43ケースに限定して全件Pass、不具合報告なし。Not Tested 0は、未提示・未計画の全シナリオまで検証済みという意味ではない。Phase 6-Aのナレーター・IME・200%拡大はユーザー手動報告による成功記録を維持する。
+
+自動テストの既存成功実績はVitest 55件＋Playwright 15件＝70件。Playwrightは既存9件とaxe6件を区別し、AX01〜AX06はviolations 0 / incomplete 0。これらはローカルビルドを対象とするCIのChromium検証であり、本番URLに対する実機操作ではない。手動43件と自動70件は別の検証範囲として記録し、全環境の保証やWCAG完全適合を主張しない。
+
+## 14. Phase 6-Dの記録・検証と次の課題
+
+- 開始時にAGENTS.md・共通標準v1.2.0を確認。作業ツリーはクリーンで、fetch後origin/mainは指定SHAと一致。同名ブランチがないことを確認し、`docs/phase-06-device-production-acceptance`を作成した。
+- 更新は本Markdown末尾への追記のみ。前節までのPhase 6-A記録、Phase 5以前の履歴、アプリ・E2E・依存・Workflow・Vercel設定・Rulesetは変更しない。文書PRのチェック結果はPR本文と最終報告で別途記録し、PR #18のmain向けCI結果と区別する。
+- 第8節の「未実施」は当時の記録として残す。今回報告されたPhase 6-B・6-Cの対象ケースだけに後続の成功報告を追記した。他の残課題が自動的に解消したとは扱わない。
+- 未確認：iPhoneモデル・iOS・Safariの詳細版、Chrome・Edgeの今回の実バージョン、全操作の詳細な再現ログと実施日時。
+- 継続課題：他の支援技術・OS・端末条件、未実施の追加アクセシビリティシナリオ、axe検査範囲拡張、依存関係のセキュリティ警告の再評価。今回auditを再実行せず、過去値を新しい測定結果にしない。
+- 次工程候補はPhase 7のリリース準備・セキュリティ確認。今回は着手しない。文書PRはマージせず別承認を待ち、ブランチ削除・タグ作成を行わない。
