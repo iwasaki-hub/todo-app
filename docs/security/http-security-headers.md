@@ -90,3 +90,59 @@ Productionは今回未変更。Preview成功をProduction反映と混同しな�
 
 - [Vercel headers仕様](https://vercel.com/docs/project-configuration/vercel-json#headers)
 - [MDN CSP Report-Only](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy-Report-Only)
+
+## Phase 7-B4-2：強制CSPのPreview検証
+
+上記はPhase 7-B4-1当時の記録として維持する。本節は後続工程であり、基準mainは`47eb9c8efdcb4a77492a5ce2a17fbfe7826eff87`。PR #22で導入したReport-Onlyと同じ値を、作業ブランチ`feat/phase-07-enforce-csp`のContent-Security-Policyへ切り替える。Report-Onlyは残さず、二重適用を避ける。基本4ヘッダー、source、ポリシー値は変更せず、HSTS・Cache-Control・rewrite・ビルド設定も追加しない。
+
+### 理由と前工程の確認結果
+
+Report-Onlyでは遮断できないため、同じ候補ポリシーを強制した状態で必要な機能との互換性を確認する。これはPreview検証PRであり、本番反映やマージの許可ではない。
+
+ユーザー報告によるPR #22のPreview手動受入では、HTML・JS・CSS・faviconの基本ヘッダーとReport-Only値、強制CSP不在、Todo機能T01〜T08 Pass、Toolbar由来CSP警告、iframe対象HTMLのHTTP 200・X-Frame-Options: DENYと非表示が確認された。Codex自身のブラウザ操作結果ではなく、強制CSPの互換性や全HEAD応答・全ブラウザの確認でもない。
+
+PR #22は2026-11-05 23:03:11 JSTにSquashマージされた。Codexのマージ後確認では、mainのpush CIでVitest59件・Playwright15件・Lint・Buildが成功し、axe6状態すべてviolations 0 / incomplete 0だった。Productionは同じマージSHAでREADY、本番HTML・参照JS/CSS・faviconのHEAD/GET計8応答が200で、基本4ヘッダー・Report-Only、強制CSP不在、従来のHSTS・Cache-Controlを確認した。これらは過去工程の結果である。
+
+### 今回の強制ポリシー
+
+```text
+default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'none'; connect-src 'none'; object-src 'none'; base-uri 'none'; frame-src 'none'; frame-ancestors 'none'; worker-src 'none'; manifest-src 'none'; form-action 'none'
+```
+
+unsafe-inline、unsafe-eval、ワイルドカード、vercel.live等の例外は追加しない。Toolbarのスクリプト・iframe・通信が遮断される可能性はTodo本体の機能不具合と分ける。favicon.svgのstyle属性による見た目の変化も残存リスクであり、表示を確認するまで互換性を保証しない。
+
+### 今回の検証結果
+
+設定検証は成功。JSONを解析し、基準mainの設定と比較してReport-Onlyから強制CSPへのヘッダー名変更だけであること、sourceと基本4ヘッダー・同一ポリシー13ディレクティブの維持、重複なしを確認した。HSTS・Cache-Control等の追加設定もない。
+
+2026-11-05、ローカルでtest→lint→build→testが成功。Vitest59件を2回、Playwright15件が成功し、axe全6状態はviolations 0 / incomplete 0だった。修正ループ0回。既存Vite previewのE2Eはvercel.jsonのヘッダーを自動適用しないため、強制CSP下の受入成功とはしない。実際のPreview URL・対象SHA・実測HTTPとブラウザ結果はデプロイ後に追記する。現時点では未確認。
+
+### 本番反映前の人間による受入
+
+### Preview実測と引き継ぎ（PR #23）
+
+[PR #23](https://github.com/iwasaki-hub/todo-app/pull/23)の初回実装SHA`6a58230706a702263fded1bd56595eee4aee3076`に対応する[Preview](https://todo-j7yj4pcuv-masas-projects-39337881.vercel.app/)はVercel APIでREADY。デプロイIDは`dpl_4YzoiFBv32chXcUkf5Vt2qyHhV9p`で、作業ブランチ・デプロイSHAが一致した。これは後続の文書追記コミットとは区別する。
+
+通常の未認証HEAD・GETを`/`へ各1回送り、どちらも302、Vercel SSOへのリダイレクト、Content-Typeはtext/plainだった。SSO保護を変更・回避しないため、Todo本体の強制CSP・Report-Only不在・基本4ヘッダー・HSTS・Cache-Controlは実測未確認。認証応答のヘッダーをアプリの成功と扱わない。
+
+| 観点 | 今回の結果 |
+| --- | --- |
+| Todo HTML・参照JS/CSS・faviconの取得 | 未確認（HTMLがSSOのため参照パスも未特定） |
+| 強制CSPの値、Report-Only不在、基本4ヘッダー | 設定静的検証成功／アプリHTTP応答は未確認 |
+| 必要スクリプト・スタイルの読み込みとConsole | 未実施 |
+| 追加・編集・削除・完了・フィルター・保存・再読み込み | Previewでは未実施 |
+| 日本語IME・エラー表示・favicon表示 | 未実施 |
+| iframe埋め込み拒否 | 未実施 |
+| Toolbar由来の実際の遮断 | 未観測（発生可能性のみ記録） |
+
+Codexによる実ブラウザ操作や認証付き自動化は実施していない。前工程のユーザーPassや通常CIを代用せず、最新HeadのPreviewで次の手順を実施する必要がある。
+
+### 強制CSPの追加手動受入手順
+
+最新HeadのPreviewで、認証済みユーザーがHTML・参照JS/CSS・faviconのHTTP 200、正しいContent-Type、強制CSPの値一致、Report-Only不在、基本4ヘッダーとHSTS・Cache-Controlを確認する。Console/Networkでアプリに必要なスクリプト・スタイルが遮断されないことを確認し、Toolbar由来の遮断とは別に記録する。
+
+テスト専用ブラウザでTodo追加・編集・取消・削除・完了切替・全フィルター・保存・再読み込み、日本語IME・エラー表示、favicon、iframe埋め込み拒否を確認する。認証画面による拒否とアプリのframe-ancestors/X-Frame-Optionsによる拒否を区別する。未操作は未実施とし、必要機能が壊れた場合は原因を報告して停止し、CSPを勝手に緩めない。SSO保護を変更・回避せず、取得できない場合はユーザー確認へ引き継ぐ。
+
+### 強制CSPのロールバック
+
+互換性問題が見つかった場合は、本PRを未マージで停止する。将来、別承認で本番適用された後に問題が出た場合は、基本4ヘッダーとポリシー値を維持してヘッダー名だけをReport-Onlyへ戻す独立PRを作り、承認後の自動デプロイで実ヘッダーと機能復旧を確認する。依存や本番コードの変更、直接Push、強制操作、手動本番デプロイで対処しない。
