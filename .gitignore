@@ -15,6 +15,13 @@ playwright-report/
 test-results/
 *.local
 
+# Local environment files (templates must contain no secrets)
+.env
+.env.*
+.envrc
+!.env.example
+!.env.sample
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
